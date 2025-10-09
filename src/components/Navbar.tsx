@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut, signIn } from "next-auth/react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: session, status } = useSession();
 
   return (
     <nav className="bg-blue-600 text-white px-4 py-3">
@@ -20,7 +22,28 @@ export default function Navbar() {
           <Link href="/about" className="hover:text-gray-200">About</Link>
           <Link href="/services" className="hover:text-gray-200">Services</Link>
           <Link href="/contact" className="hover:text-gray-200">Contact</Link>
-          <Link href="/login" className="hover:text-gray-200">Login</Link>
+          {status === "loading" ? (
+            <span>Loading...</span>
+          ) : session ? (
+            <div className="flex items-center gap-3">
+              <span>👋 {session.user?.name || session.user?.email}</span>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="bg-red-500 text-white px-3 py-1 rounded"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            // <button
+            //   onClick={() => signIn()}
+            //   className="bg-blue-500 text-white px-3 py-1 rounded"
+            // >
+            //   Login
+            // </button>
+            <Link href="/login" className="hover:text-gray-200">Login</Link>
+          )}
+          
         </div>
 
         {/* Mobile Menu Button */}

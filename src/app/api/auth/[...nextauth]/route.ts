@@ -1,26 +1,60 @@
+// /app/api/auth/[...nextauth]/route.ts
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET,
-  session: {
-    strategy: "jwt",
-  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
+        email: { label: "Email", type: "text", placeholder: "you@example.com" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (credentials?.username === "admin" && credentials?.password === "123") {
-          return { id: "1", name: "Admin User", email: "admin@example.com" };
+        try {
+          const res = await fetch(`${process.env.API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials?.email,
+              password: credentials?.password,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (! res.ok || ! data) {
+            throw new Error(data.data.message || "Login failed");
+          }
+
+          return data.data;
+        } catch (error) {
+          console.error("Login error:", error);
+          return null;
         }
-        return null;
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.accessToken = user.token; // your API token
+        token.user = user; // save user data
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user = token.user;
+      session.accessToken = token.accessToken;
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/login",
+  },
 };
 
 const handler = NextAuth(authOptions);
